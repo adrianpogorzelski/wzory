@@ -1,0 +1,23 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  category: string;
+  slug: string;
+}
+
+const { title, description, category, slug } = Astro.props;
+---
+
+<div class="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all">
+  <div class="card-body">
+    <div class="badge badge-primary badge-outline mb-2">{category}</div>
+    <h2 class="card-title text-lg font-bold">{title}</h2>
+    <p class="text-sm text-base-content/70">{description}</p>
+    <div class="card-actions justify-end mt-4">
+      <a href={`/documents/${slug}`} class="btn btn-sm btn-primary">
+        Wypełnij i pobierz
+      </a>
+    </div>
+  </div>
+</div>
