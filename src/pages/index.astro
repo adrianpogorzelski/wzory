@@ -1,12 +1,13 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import DocumentGrid from '../components/DocumentGrid.astro';
+import DocumentCard from '../components/DocumentCard.astro';
 import { getCollection } from 'astro:content';
 
-const documentList = await getCollection('documents');
-console.log("Pobrane dokumenty z kolekcji:", documentList);
+const documents = await getCollection('documents');
 ---
 
 <Layout title="Wzory Dokumentów - Strona Główna">
-	<DocumentGrid documents={documentList} />
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		{documents.map((doc) => <DocumentCard doc={doc} />)}
+	</div>
 </Layout>

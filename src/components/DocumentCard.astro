@@ -1,23 +1,22 @@
 ---
+import type { CollectionEntry } from 'astro:content';
+
 interface Props {
-  title: string;
-  description: string;
-  category: string;
-  slug: string;
+  doc: CollectionEntry<'documents'>;
 }
 
-const { title, description, category, slug } = Astro.props;
+const { doc } = Astro.props;
+const { title, description, category } = doc.data;
 ---
 
 <div class="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all">
-  <div class="card-body">
-    <div class="badge badge-primary badge-outline mb-2">{category}</div>
-    <h2 class="card-title text-lg font-bold">{title}</h2>
-    <p class="text-sm text-base-content/70">{description}</p>
-    <div class="card-actions justify-end mt-4">
-      <a href={`/documents/${slug}`} class="btn btn-sm btn-primary">
-        Wypełnij i pobierz
-      </a>
+  <a href={`/documents/${doc.id}`}>
+    <div class="card-body">
+      <div class="badge badge-primary badge-outline mb-2">{category}</div>
+      <h2 class="card-title text-lg font-bold">{title}</h2>
+      <p class="text-sm text-base-content/70">{description}</p>
+      <div class="card-actions justify-end mt-4">
+      </div>
     </div>
-  </div>
+  </a>
 </div>

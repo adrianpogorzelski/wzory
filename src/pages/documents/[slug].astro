@@ -1,0 +1,94 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const documents = await getCollection('documents');
+  return documents.map((doc) => ({ params: { slug: doc.id }, props: { doc } }));
+}
+
+const { doc } = Astro.props;
+const { Content } = await render(doc);
+const { title, category, fields } = doc.data;
+---
+
+<Layout title={title} wide>
+  <main class="w-full py-8 px-4 md:px-8">
+    <div class="flex flex-col xl:flex-row gap-8 items-start">
+
+        <!-- FORM -->
+        <form id="document-form" class="card bg-base-100 shadow-xl p-6 border border-base-200 w-full xl:w-max xl:min-w-64 xl:sticky xl:top-8 shrink-0 space-y-4 print:hidden">    
+            <h2 class="text-2xl font-bold">Dane dokumentu</h2>
+            {fields.map((f) => (
+            <label class="form-control">
+                <span class="label-text whitespace-nowrap">{f.label}</span>
+                <input type={f.type} name={f.id} placeholder={f.placeholder} class="input input-bordered w-full" />
+            </label>
+            ))}
+            <button type="button" id="print-btn" class="btn btn-primary w-full">Drukuj / Pobierz PDF</button>
+        </form>
+
+    <div class="flex-1 min-w-0 w-full">
+    <div id="page-frame" class="mx-auto w-full max-w-[1100px]">
+
+        <!-- pasek informacyjny nad kartką -->
+        <div class="print:hidden mb-3 flex justify-between items-center text-xs text-gray-500">
+        <span>Podgląd dokumentu (format A4)</span>
+        <span class="badge badge-outline">{category}</span>
+        </div>
+
+        <!-- sizer rezerwuje wysokość po przeskalowaniu -->
+        <div id="page-sizer">
+        <div id="document-preview" class="bg-white text-black shadow-2xl border border-base-200">
+            <article class="prose prose-slate max-w-none leading-relaxed text-gray-900">
+            <Content />
+            </article>
+        </div>
+        </div>
+
+    </div>
+    </div>
+
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const form = document.getElementById('document-form') as HTMLFormElement;
+
+  // zapamiętaj tekst z md ("[Miejscowość]") jako wartość domyślną
+  document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
+    el.dataset.fallback = el.textContent ?? '';
+  });
+
+  const format = (input: HTMLInputElement) =>
+    input.type === 'date' && input.value
+      ? new Date(input.value + 'T00:00:00').toLocaleDateString('pl-PL')
+      : input.value;
+
+  form.addEventListener('input', (e) => {
+    const input = e.target as HTMLInputElement;
+    document.querySelectorAll<HTMLElement>(`[data-field="${input.name}"]`).forEach((el) => {
+      el.textContent = format(input) || el.dataset.fallback || '';
+    });
+  });
+
+  document.getElementById('print-btn')?.addEventListener('click', () => window.print());
+
+  // Dopasowanie kartki A4 do szerokości kolumny
+const frame = document.getElementById('page-frame') as HTMLElement;
+const sizer = document.getElementById('page-sizer') as HTMLElement;
+const page = document.getElementById('document-preview') as HTMLElement;
+
+const fit = () => {
+  const scale = frame.clientWidth / page.offsetWidth;
+  page.style.transform = `scale(${scale})`;
+  sizer.style.height = `${page.offsetHeight * scale}px`;
+};
+
+const refit = () => requestAnimationFrame(fit);
+new ResizeObserver(refit).observe(frame);
+new ResizeObserver(refit).observe(page); // gdy dłuższa treść wydłuży kartkę
+document.fonts.ready.then(fit);
+fit();
+</script>
