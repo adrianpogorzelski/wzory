@@ -1,0 +1,23 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getCategories } from '../utils/categories';
+
+interface Props {
+  documents: CollectionEntry<'documents'>[];
+  active?: string; // slug aktywnej kategorii
+}
+
+const { documents, active } = Astro.props;
+const categories = getCategories(documents);
+---
+
+<nav class="flex flex-wrap gap-2 mb-6" aria-label="Kategorie">
+  <a href="/" class:list={['btn btn-sm', !active ? 'btn-primary' : 'btn-outline']}>
+    Wszystkie ({documents.length})
+  </a>
+  {categories.map((c) => (
+    <a href={`/categories/${c.slug}`} class:list={['btn btn-sm', active === c.slug ? 'btn-primary' : 'btn-outline']}>
+      {c.name} ({c.count})
+    </a>
+  ))}
+</nav>

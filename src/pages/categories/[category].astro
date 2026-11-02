@@ -1,0 +1,29 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import DocumentRow from '../../components/DocumentRow.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { getCollection } from 'astro:content';
+import { getCategories, slugify } from '../../utils/categories';
+
+export async function getStaticPaths() {
+  const documents = await getCollection('documents');
+  return getCategories(documents).map((c) => ({
+    params: { category: c.slug },
+    props: { name: c.name },
+  }));
+}
+
+const { category } = Astro.params;
+const { name } = Astro.props;
+
+const all = await getCollection('documents');
+const documents = all.filter((d) => slugify(d.data.category) === category);
+---
+
+<Layout title={`${name} - Wzory Dokumentów`}>
+  <Breadcrumbs items={[{ label: name }]} />
+  <h1 class="text-2xl font-bold mb-6">{name}</h1>
+  <ul class="list bg-base-100 rounded-box shadow-md">
+    {documents.map((doc) => <DocumentRow doc={doc} />)}
+  </ul>
+</Layout>

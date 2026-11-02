@@ -1,0 +1,16 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import DocumentRow from '../../components/DocumentRow.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { getCollection } from 'astro:content';
+
+const documents = await getCollection('documents');
+---
+
+<Layout title="Wszystkie dokumenty - Wzory Dokumentów">
+  <Breadcrumbs items={[{ label: 'Wszystkie dokumenty' }]} />
+  <h1 class="text-2xl font-bold mb-6">Wszystkie dokumenty</h1>
+  <ul class="list bg-base-100 rounded-box shadow-md">
+    {documents.map((doc) => <DocumentRow doc={doc} />)}
+  </ul>
+</Layout>

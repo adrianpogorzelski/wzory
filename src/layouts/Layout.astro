@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import Navbar from '../components/Navbar.astro'; 
 
 interface Props {
   title: string;
@@ -7,6 +8,9 @@ interface Props {
 }
 
 const { title, wide = false } = Astro.props;
+
+const contentWidth = wide ? 'max-w-[1600px]' : 'max-w-4xl';
+const navWidth = wide ? 'max-w-[1800px]' : 'max-w-5xl';
 ---
 
 <!doctype html>
@@ -16,12 +20,10 @@ const { title, wide = false } = Astro.props;
     <meta name="viewport" content="width=device-width" />
     <title>{title}</title>
   </head>
-  <body class="min-h-screen flex flex-col print:bg-white">
-    <header class="navbar bg-base-100 shadow-sm px-4 print:hidden">
-      <a href="/" class="text-xl font-bold">Wzory Dokumentów Online</a>
-    </header>
+  <body class="min-h-screen flex flex-col bg-base-200 print:bg-white">
+    <Navbar containerClass={navWidth} />
 
-    <div class:list={['flex-1 w-full mx-auto px-4 py-8 print:p-0 print:max-w-none', !wide && 'max-w-4xl']}>
+    <div class:list={['flex-1 w-full mx-auto px-4 py-8 print:p-0 print:max-w-none', contentWidth]}>
       <slot />
     </div>
 

@@ -1,0 +1,36 @@
+---
+import { getCollection } from 'astro:content';
+import { getCategories } from '../utils/categories';
+
+interface Props {
+  containerClass?: string;
+}
+
+const { containerClass = 'max-w-5xl' } = Astro.props;
+const categories = getCategories(await getCollection('documents'));
+---
+
+<header class="bg-base-100 shadow-sm print:hidden">
+  <div class:list={['navbar mx-auto w-full px-4 gap-2', containerClass]}>
+    <div class="flex-1 flex items-center gap-2">
+      <a href="/" class="text-lg sm:text-xl font-bold">Wzory Dokumentów Online</a>
+
+      <div class="dropdown">
+        <div tabindex="0" role="button" class="btn btn-ghost">Kategorie</div>
+        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 mt-2 w-56 p-2 shadow-lg">
+          <li><a href="/documents" class="font-semibold">Wszystkie dokumenty</a></li>
+          {categories.map((c) => (
+            <li><a href={`/categories/${c.slug}`}>{c.name}</a></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <input
+      type="search"
+      placeholder="Szukaj wzoru…"
+      aria-label="Szukaj wzoru"
+      class="input input-bordered hidden sm:block w-64"
+    />
+  </div>
+</header>

@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getCollection, render } from 'astro:content';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { slugify } from '../../utils/categories';
 
 export async function getStaticPaths() {
   const documents = await getCollection('documents');
@@ -14,6 +16,10 @@ const { title, category, fields } = doc.data;
 
 <Layout title={title} wide>
   <main class="w-full py-8 px-4 md:px-8">
+  <Breadcrumbs items={[
+  { label: category, href: `/categories/${slugify(category)}` },
+  { label: title },
+]} />
     <div class="flex flex-col xl:flex-row gap-8 items-start">
 
         <!-- FORM -->
@@ -30,12 +36,6 @@ const { title, category, fields } = doc.data;
 
     <div class="flex-1 min-w-0 w-full">
     <div id="page-frame" class="mx-auto w-full max-w-[1100px]">
-
-        <!-- pasek informacyjny nad kartką -->
-        <div class="print:hidden mb-3 flex justify-between items-center text-xs text-gray-500">
-        <span>Podgląd dokumentu (format A4)</span>
-        <span class="badge badge-outline">{category}</span>
-        </div>
 
         <!-- sizer rezerwuje wysokość po przeskalowaniu -->
         <div id="page-sizer">

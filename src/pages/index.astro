@@ -1,13 +1,29 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import DocumentCard from '../components/DocumentCard.astro';
+import CategoryCard from '../components/CategoryCard.astro';
 import { getCollection } from 'astro:content';
+import { getCategories } from '../utils/categories';
 
 const documents = await getCollection('documents');
+const categories = getCategories(documents);
 ---
 
 <Layout title="Wzory Dokumentów - Strona Główna">
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-		{documents.map((doc) => <DocumentCard doc={doc} />)}
-	</div>
+  <section class="mb-10">
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend text-base">Znajdź wzór dokumentu</legend>
+      <input type="search" placeholder="Szukaj wzoru…" aria-label="Szukaj wzoru" class="input w-full" />
+      <p class="label">Wpisz nazwę dokumentu lub słowo kluczowe.</p>
+    </fieldset>
+  </section>
+
+  <section>
+    <h2 class="text-xl font-bold mb-4">Kategorie</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {categories.map((c) => (
+        <CategoryCard name={c.name} href={`/categories/${c.slug}`} count={c.count} />
+      ))}
+      <CategoryCard name="Wszystkie dokumenty" href="/documents" count={documents.length} />
+    </div>
+  </section>
 </Layout>
