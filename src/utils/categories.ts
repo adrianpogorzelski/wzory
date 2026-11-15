@@ -10,8 +10,14 @@ export const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-export function getCategories(docs: CollectionEntry<'documents'>[]) {
-  const map = new Map<string, { name: string; slug: string; count: number }>();
+export interface Category {
+  name: string;
+  slug: string;
+  count: number;
+}
+
+export function getCategories(docs: CollectionEntry<'documents'>[]): Category[] {
+  const map = new Map<string, Category>();
   for (const doc of docs) {
     const name = doc.data.category;
     const slug = slugify(name);

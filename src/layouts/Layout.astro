@@ -1,34 +1,33 @@
 ---
 import '../styles/global.css';
-import Navbar from '../components/Navbar.astro'; 
+import Navbar from '../components/Navbar.astro';
+import { CONTAINER } from '../utils/layout';
 
 interface Props {
   title: string;
-  wide?: boolean;
 }
 
-const { title, wide = false } = Astro.props;
-
-const contentWidth = wide ? 'max-w-[1600px]' : 'max-w-4xl';
-const navWidth = wide ? 'max-w-[1800px]' : 'max-w-5xl';
+const { title } = Astro.props;
 ---
-  
+
 <!doctype html>
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
   </head>
-  <body class="min-h-screen flex flex-col bg-base-200 print:bg-white">
-    <Navbar containerClass={navWidth} />
+  <body class="min-h-dvh flex flex-col bg-base-200 print:bg-white">
+    <Navbar />
 
-    <div class:list={['flex-1 w-full mx-auto px-4 py-8 print:p-0 print:max-w-none', contentWidth]}>
+    <div class:list={['flex-1 py-4 sm:py-8 print:max-w-none print:p-0', CONTAINER]}>
       <slot />
     </div>
 
-    <footer class="footer footer-center p-4 bg-base-100 text-sm print:hidden">
-      © 2026 Wzory Dokumentów. Szybko, prosto i legalnie.
+    <footer class="bg-base-100 border-t border-base-300 py-3 text-xs text-base-content/70 print:hidden">
+      <div class:list={['text-center', CONTAINER]}>
+        © 2026 Wzory Dokumentów. Szybko, prosto i legalnie.
+      </div>
     </footer>
   </body>
 </html>

@@ -1,6 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
 import { getCategories } from '../utils/categories';
+import SearchBox from './SearchBox.astro';
+import CategoryMenu from './CategoryMenu.astro';
+import { CONTAINER } from '../utils/layout';
 
 interface Props {
   containerClass?: string;
@@ -10,27 +13,90 @@ const { containerClass = 'max-w-5xl' } = Astro.props;
 const categories = getCategories(await getCollection('documents'));
 ---
 
-<header class="bg-base-100 shadow-sm print:hidden">
-  <div class:list={['navbar mx-auto w-full px-4 gap-2', containerClass]}>
+<header class="relative bg-base-100 shadow-sm print:hidden">
+  <div class:list={['navbar gap-2', CONTAINER]}>
     <div class="flex-1 flex items-center gap-2">
-      <a href="/" class="text-lg sm:text-xl font-bold">Wzory Dokumentów Online</a>
+      <a href="/" class="text-lg md:text-xl font-bold">Wzory Dokumentów Online</a>
 
-      <div class="dropdown">
+      <!-- desktop: kategorie jako lista rozwijana -->
+      <div class="dropdown hidden md:block">
         <div tabindex="0" role="button" class="btn btn-ghost">Kategorie</div>
         <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 mt-2 w-56 p-2 shadow-lg">
-          <li><a href="/documents" class="font-semibold">Wszystkie dokumenty</a></li>
-          {categories.map((c) => (
-            <li><a href={`/categories/${c.slug}`}>{c.name}</a></li>
-          ))}
+          <CategoryMenu categories={categories} />
         </ul>
       </div>
     </div>
 
-    <input
-      type="search"
-      placeholder="Szukaj wzoru…"
-      aria-label="Szukaj wzoru"
-      class="input input-bordered hidden sm:block w-64"
-    />
+    <!-- desktop: wyszukiwarka -->
+    <SearchBox align="right" class="hidden md:block w-64" />
+
+    <!-- telefon: lupa i hamburger -->
+    <div class="flex items-center md:hidden">
+      <button type="button" id="search-toggle" class="btn btn-ghost btn-square" aria-label="Szukaj">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+      </button>
+      <button type="button" id="menu-toggle" class="btn btn-ghost btn-square" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+        <svg data-icon="open" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+        <svg data-icon="close" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hidden h-6 w-6" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- telefon: panel menu pod nawigacją -->
+  <div
+    id="mobile-menu"
+    class="hidden absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-base-300 bg-base-100 p-3 shadow-lg md:hidden"
+  >
+    <SearchBox align="inline" />
+
+    <ul class="menu w-full p-0 mt-3">
+      <li>
+        <details>
+          <summary class="font-semibold">Kategorie</summary>
+          <ul>
+            <CategoryMenu categories={categories} />
+          </ul>
+        </details>
+      </li>
+      <!-- tu w przyszłości kolejne pozycje menu -->
+    </ul>
   </div>
 </header>
+
+<script>
+  const menu = document.getElementById('mobile-menu')!;
+  const toggle = document.getElementById('menu-toggle')!;
+  const searchToggle = document.getElementById('search-toggle')!;
+
+  function setMenu(open: boolean) {
+    menu.classList.toggle('hidden', !open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.querySelector('[data-icon="open"]')?.classList.toggle('hidden', open);
+    toggle.querySelector('[data-icon="close"]')?.classList.toggle('hidden', !open);
+  }
+
+  toggle.addEventListener('click', () => setMenu(menu.classList.contains('hidden')));
+
+  // lupa: otwiera menu i od razu ustawia kursor w polu
+  searchToggle.addEventListener('click', () => {
+    setMenu(true);
+    menu.querySelector<HTMLInputElement>('input')?.focus();
+  });
+
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && setMenu(false));
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as Node;
+    if (!menu.contains(target) && !toggle.contains(target) && !searchToggle.contains(target)) setMenu(false);
+  });
+
+  menu.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a')) setMenu(false);
+  });
+</script>

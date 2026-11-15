@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import CategoryCard from '../components/CategoryCard.astro';
+import SearchBox from '../components/SearchBox.astro';
 import { getCollection } from 'astro:content';
 import { getCategories } from '../utils/categories';
 
@@ -12,7 +13,7 @@ const categories = getCategories(documents);
   <section class="mb-10">
     <fieldset class="fieldset">
       <legend class="fieldset-legend text-base">Znajdź wzór dokumentu</legend>
-      <input type="search" placeholder="Szukaj wzoru…" aria-label="Szukaj wzoru" class="input w-full" />
+      <SearchBox placeholder="Szukaj wzoru…" />
       <p class="label">Wpisz nazwę dokumentu lub słowo kluczowe.</p>
     </fieldset>
   </section>

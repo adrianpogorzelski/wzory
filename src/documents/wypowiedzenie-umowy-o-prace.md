@@ -28,7 +28,8 @@ fields:
 <h2 class="text-center font-bold text-lg my-6 uppercase tracking-wide">OŚWIADCZENIE</h2>
 
 <p class="mb-4">
-  Niniejszym wypowiadam umowę o pracę zawartą w dniu [Data zawarcia umowy] pomiędzy [Nazwa Firmy] a <strong data-field="name">[Imię i Nazwisko Pracownika]</strong>, z zachowaniem przewidzianego prawem okresu wypowiedzenia.
+  Niniejszym wypowiadam umowę o pracę zawartą w dniu 
+  <strong data-field="date">[Data zawarcia umowy] r.</strong> pomiędzy [Nazwa Firmy] a <strong data-field="name">[Imię i Nazwisko Pracownika]</strong>, z zachowaniem przewidzianego prawem okresu wypowiedzenia.
 </p>
 
 <p class="mb-8">

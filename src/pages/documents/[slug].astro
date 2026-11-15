@@ -18,7 +18,7 @@ const ungrouped = fields.filter((f) => !f.group);
 const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group === g.id) }));
 ---
 
-<Layout title={title} wide>
+<Layout title={title}>
   <main class="w-full py-8 px-4 md:px-8">
     <Breadcrumbs
       items={[

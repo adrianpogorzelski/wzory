@@ -396,6 +396,7 @@ a {
   main,
   #page-frame {
     max-width: none !important;
+    overflow-x: clip;
   }
 
   main {
@@ -422,6 +423,21 @@ a {
 
   .no-print {
     display: none !important;
+  }
+
+  #preview-backdrop,
+  #open-preview { display: none !important; }
+
+  #preview-pane {
+    position: static !important;
+    transform: none !important;
+    translate: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 }
 

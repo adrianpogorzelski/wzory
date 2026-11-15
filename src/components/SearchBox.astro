@@ -1,0 +1,119 @@
+---
+interface Props {
+  class?: string;
+  placeholder?: string;
+  align?: 'left' | 'right' | 'inline'; // inline: wyniki w układzie strony, bez unoszenia (menu mobilne)
+}
+
+const { class: className = '', placeholder = 'Szukaj wzoru…', align = 'left' } = Astro.props;
+
+const position = {
+  left: 'absolute top-full left-0 right-0 z-50 mt-2 border border-base-300 shadow-xl',
+  right: 'absolute top-full right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] border border-base-300 shadow-xl',
+  inline: 'mt-2 border border-base-300',
+}[align];
+---
+
+<div data-search role="search" class:list={['relative', className]}>
+  <input
+    type="search"
+    placeholder={placeholder}
+    aria-label="Szukaj wzoru"
+    autocomplete="off"
+    class="input input-bordered w-full"
+  />
+  <ul
+    data-search-results
+    aria-live="polite"
+    class:list={['menu flex-nowrap hidden max-h-96 overflow-y-auto rounded-box bg-base-100 p-2', position]}
+  ></ul>
+</div>
+
+<script>
+  import { search, type SearchItem } from '../utils/search';
+
+  // indeks pobieramy raz, dopiero przy pierwszym użyciu
+  let index: Promise<SearchItem[]> | null = null;
+  const load = () => (index ??= fetch('/search.json').then((r) => r.json()));
+
+  document.querySelectorAll<HTMLElement>('[data-search]').forEach((root) => {
+    const input = root.querySelector('input')!;
+    const panel = root.querySelector<HTMLElement>('[data-search-results]')!;
+    const links = () => [...panel.querySelectorAll<HTMLAnchorElement>('a')];
+
+    const close = () => panel.classList.add('hidden');
+
+    function render(items: SearchItem[], query: string) {
+      panel.replaceChildren();
+
+      if (!items.length) {
+        const li = document.createElement('li');
+        li.className = 'px-3 py-2 text-sm text-base-content/70';
+        li.textContent = `Brak wyników dla „${query}”`;
+        panel.append(li);
+      }
+
+      for (const item of items) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = item.url;
+        a.className = 'flex flex-col items-start gap-0.5';
+
+        const title = document.createElement('span');
+        title.className = 'font-semibold';
+        title.textContent = item.title;
+
+        const description = document.createElement('span');
+        description.className = 'text-xs text-base-content/70 line-clamp-2';
+        description.textContent = item.description;
+
+        a.append(title, description);
+        li.append(a);
+        panel.append(li);
+      }
+
+      panel.classList.remove('hidden');
+    }
+
+    async function run() {
+      const query = input.value.trim();
+      if (!query) return close();
+      const results = search(await load(), query);
+      if (input.value.trim() === query) render(results, query); // pomiń nieaktualne
+    }
+
+    input.addEventListener('focus', () => {
+      load();
+      if (input.value.trim()) run();
+    });
+    input.addEventListener('input', run);
+
+    // klawiatura: ↓ wchodzi na listę, Enter otwiera pierwszy wynik, Esc zamyka
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        links()[0]?.focus();
+      } else if (e.key === 'Enter') links()[0]?.click();
+    });
+
+    panel.addEventListener('keydown', (e) => {
+      const items = links();
+      const i = items.indexOf(document.activeElement as HTMLAnchorElement);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        items[Math.min(i + 1, items.length - 1)]?.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        (i > 0 ? items[i - 1] : input).focus();
+      } else if (e.key === 'Escape') {
+        close();
+        input.focus();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!root.contains(e.target as Node)) close();
+    });
+  });
+</script>

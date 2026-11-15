@@ -6,6 +6,7 @@ const documents = defineCollection({
   schema: z.object({
     title: z.string(),
     category: z.string(),
+    subcategory: z.string().optional(),
     description: z.string(),
     groups: z
       .array(z.object({ id: z.string(), title: z.string(), description: z.string() }))

@@ -1,0 +1,14 @@
+---
+import type { Category } from '../utils/categories';
+
+interface Props {
+  categories: Category[];
+}
+
+const { categories } = Astro.props;
+---
+
+<li><a href="/documents" class="font-semibold">Wszystkie dokumenty</a></li>
+{categories.map((c) => (
+  <li><a href={`/categories/${c.slug}`}>{c.name}</a></li>
+))}
