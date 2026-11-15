@@ -424,3 +424,9 @@ a {
     display: none !important;
   }
 }
+
+.print-blank {
+  display: inline-block;
+  min-width: 12em;
+  border-bottom: 1px solid #000;
+}

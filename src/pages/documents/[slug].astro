@@ -1,8 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getCollection, render } from 'astro:content';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { getCollection, render } from 'astro:content';
 import { slugify } from '../../utils/categories';
+import FormField from '../../components/FormField.astro';
 
 export async function getStaticPaths() {
   const documents = await getCollection('documents');
@@ -11,84 +12,192 @@ export async function getStaticPaths() {
 
 const { doc } = Astro.props;
 const { Content } = await render(doc);
-const { title, category, fields } = doc.data;
+const { title, category, fields, groups = [] } = doc.data;
+
+const ungrouped = fields.filter((f) => !f.group);
+const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group === g.id) }));
 ---
 
 <Layout title={title} wide>
   <main class="w-full py-8 px-4 md:px-8">
-  <Breadcrumbs items={[
-  { label: category, href: `/categories/${slugify(category)}` },
-  { label: title },
-]} />
+    <Breadcrumbs
+      items={[
+        { label: category, href: `/categories/${slugify(category)}` },
+        { label: title },
+      ]}
+    />
+
     <div class="flex flex-col xl:flex-row gap-8 items-start">
 
-        <!-- FORM -->
-        <form id="document-form" class="card bg-base-100 shadow-xl p-6 border border-base-200 w-full xl:w-max xl:min-w-64 xl:sticky xl:top-8 shrink-0 space-y-4 print:hidden">    
-            <h2 class="text-2xl font-bold">Dane dokumentu</h2>
-            {fields.map((f) => (
-            <label class="form-control">
-                <span class="label-text whitespace-nowrap">{f.label}</span>
-                <input type={f.type} name={f.id} placeholder={f.placeholder} class="input input-bordered w-full" />
-            </label>
-            ))}
-            <button type="button" id="print-btn" class="btn btn-primary w-full">Drukuj / Pobierz PDF</button>
-        </form>
+      <form id="document-form" class="card bg-base-100 shadow-xl p-6 border border-base-200 w-full xl:w-max xl:min-w-64 xl:sticky xl:top-8 shrink-0 space-y-4 print:hidden">
+        <h2 class="text-2xl font-bold">Dane dokumentu</h2>
 
-    <div class="flex-1 min-w-0 w-full">
-    <div id="page-frame" class="mx-auto w-full max-w-[1100px]">
+        {ungrouped.map((f) => <FormField field={f} />)}
 
-        <!-- sizer rezerwuje wysokość po przeskalowaniu -->
-        <div id="page-sizer">
-        <div id="document-preview" class="bg-white text-black shadow-2xl border border-base-200">
-            <article class="prose prose-slate max-w-none leading-relaxed text-gray-900">
-            <Content />
-            </article>
+        {grouped.map((g) => (
+          <fieldset class="border border-base-300 rounded-box p-4">
+            <legend class="px-2 font-semibold">{g.title}</legend>
+            <p class="text-sm text-base-content/70 max-w-xs mb-3">{g.description}</p>
+            <div class="flex flex-col gap-4">
+              {g.fields.map((f) => <FormField field={f} />)}
+            </div>
+          </fieldset>
+        ))}
+
+        <button type="button" id="print-btn" class="btn btn-primary w-full">Drukuj / Pobierz PDF</button>
+      </form>
+
+      <div class="flex-1 min-w-0 w-full">
+        <div id="page-frame" class="mx-auto w-full max-w-[1100px]">
+          <!-- sizer rezerwuje wysokość po przeskalowaniu -->
+          <div id="page-sizer">
+            <div id="document-preview" class="bg-white text-black shadow-2xl border border-base-200">
+              <article class="prose prose-slate max-w-none leading-relaxed text-gray-900">
+                <Content />
+              </article>
+            </div>
+          </div>
         </div>
-        </div>
-
-    </div>
-    </div>
+      </div>
 
     </div>
   </main>
+    <dialog id="missing-dialog" class="modal print:hidden">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">Nie wszystkie pola są wypełnione</h3>
+      <p class="py-2 text-sm">Brakuje:</p>
+      <ul id="missing-list" class="list-disc pl-5 text-sm space-y-1"></ul>
+      <p class="pt-4 text-sm text-base-content/70">
+        Możesz uzupełnić dane albo wydrukować dokument z pustymi miejscami do wypełnienia ręcznie.
+      </p>
+      <div class="modal-action flex-wrap">
+        <button type="button" id="missing-fill" class="btn btn-primary">Uzupełnij dane</button>
+        <button type="button" id="missing-print" class="btn btn-outline">Drukuj z pustymi miejscami</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button aria-label="Zamknij">zamknij</button></form>
+  </dialog>
 </Layout>
 
 <script>
-  const form = document.getElementById('document-form') as HTMLFormElement;
+import { declineName, guessGender, type Case, type Gender } from '../../utils/inflect';
 
-  // zapamiętaj tekst z md ("[Miejscowość]") jako wartość domyślną
+const form = document.getElementById('document-form') as HTMLFormElement;
+const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | null;
+
+// płeć wybrana ręcznie albo odgadnięta z imienia; null, gdy jeszcze nic nie wiadomo
+function genderOf(id: string): Gender | null {
+  const chosen = field(`${id}__gender`)?.value as Gender | '' | undefined;
+  if (chosen) return chosen;
+  const name = field(id)?.value.trim();
+  return name ? guessGender(name) : null;
+}
+
+// zapamiętaj tekst z md ("[Miejscowość]", "[płeć]") jako wartość domyślną
+document.querySelectorAll<HTMLElement>('[data-field], [data-honorific]').forEach((el) => {
+  el.dataset.fallback = el.textContent ?? '';
+});
+
+function update() {
   document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
-    el.dataset.fallback = el.textContent ?? '';
-  });
+    const id = el.dataset.field!;
+    const input = field(id);
+    if (!input) return;
 
-  const format = (input: HTMLInputElement) =>
-    input.type === 'date' && input.value
+    let value = input.type === 'date' && input.value
       ? new Date(input.value + 'T00:00:00').toLocaleDateString('pl-PL')
-      : input.value;
+      : input.value.trim();
 
-  form.addEventListener('input', (e) => {
-    const input = e.target as HTMLInputElement;
-    document.querySelectorAll<HTMLElement>(`[data-field="${input.name}"]`).forEach((el) => {
-      el.textContent = format(input) || el.dataset.fallback || '';
-    });
+    const c = el.dataset.case as Case | undefined;
+    if (value && c) value = declineName(value, genderOf(id) ?? guessGender(value), c);
+
+    el.textContent = value || el.dataset.fallback || '';
   });
 
-  document.getElementById('print-btn')?.addEventListener('click', () => window.print());
+  // "panią/pana" według płci osoby
+  document.querySelectorAll<HTMLElement>('[data-honorific]').forEach((el) => {
+    const gender = genderOf(el.dataset.honorific!);
+    el.textContent = gender ? (gender === 'f' ? 'panią' : 'pana') : el.dataset.fallback || '';
+  });
+}
 
-  // Dopasowanie kartki A4 do szerokości kolumny
-const frame = document.getElementById('page-frame') as HTMLElement;
-const sizer = document.getElementById('page-sizer') as HTMLElement;
-const page = document.getElementById('document-preview') as HTMLElement;
+form.addEventListener('input', update);
 
-const fit = () => {
-  const scale = frame.clientWidth / page.offsetWidth;
-  page.style.transform = `scale(${scale})`;
-  sizer.style.height = `${page.offsetHeight * scale}px`;
-};
+  const dialog = document.getElementById('missing-dialog') as HTMLDialogElement;
+const missingList = document.getElementById('missing-list') as HTMLUListElement;
 
-const refit = () => requestAnimationFrame(fit);
-new ResizeObserver(refit).observe(frame);
-new ResizeObserver(refit).observe(page); // gdy dłuższa treść wydłuży kartkę
-document.fonts.ready.then(fit);
-fit();
+// puste pola tekstowe i daty, z czytelną nazwą (grupa: etykieta)
+function missingFields() {
+  return [...form.querySelectorAll<HTMLInputElement>('input')]
+    .filter((input) => !input.value.trim())
+    .map((input) => {
+      const group = input.closest('fieldset')?.querySelector('legend')?.textContent?.trim();
+      const name = input.closest('label')?.querySelector('.label-text')?.textContent?.trim() ?? input.name;
+      return { input, label: group ? `${group}: ${name}` : name };
+    });
+}
+
+document.getElementById('print-btn')?.addEventListener('click', () => {
+  const missing = missingFields();
+  if (!missing.length) {
+    window.print();
+    return;
+  }
+  missingList.replaceChildren(
+    ...missing.map((m) => {
+      const li = document.createElement('li');
+      li.textContent = m.label;
+      return li;
+    })
+  );
+  dialog.showModal();
+});
+
+document.getElementById('missing-fill')?.addEventListener('click', () => {
+  dialog.close();
+  missingFields()[0]?.input.focus();
+});
+
+document.getElementById('missing-print')?.addEventListener('click', () => {
+  dialog.close();
+  window.print();
+});
+
+// Przed wydrukiem: puste pola zamieniamy na linię do wpisania ręcznie
+window.addEventListener('beforeprint', () => {
+  document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
+    const input = field(el.dataset.field!);
+    if (input && !input.value.trim()) {
+      el.textContent = '\u00A0';
+      el.classList.add('print-blank');
+    }
+  });
+  // nieustalona płeć: zostaje "panią/pana" do ręcznego skreślenia
+  document.querySelectorAll<HTMLElement>('[data-honorific]').forEach((el) => {
+    if (!genderOf(el.dataset.honorific!)) el.textContent = 'panią/pana';
+  });
+});
+
+// Po wydruku: przywróć podgląd
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('.print-blank').forEach((el) => el.classList.remove('print-blank'));
+  update();
+});
+
+  // dopasowanie kartki A4 do szerokości kolumny
+  const frame = document.getElementById('page-frame') as HTMLElement;
+  const sizer = document.getElementById('page-sizer') as HTMLElement;
+  const page = document.getElementById('document-preview') as HTMLElement;
+
+  const fit = () => {
+    const scale = frame.clientWidth / page.offsetWidth;
+    page.style.transform = `scale(${scale})`;
+    sizer.style.height = `${page.offsetHeight * scale}px`;
+  };
+
+  const refit = () => requestAnimationFrame(fit);
+  new ResizeObserver(refit).observe(frame);
+  new ResizeObserver(refit).observe(page); // gdy dłuższa treść wydłuży kartkę
+  document.fonts.ready.then(fit);
+  fit();
 </script>
