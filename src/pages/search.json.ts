@@ -7,7 +7,7 @@ export const GET: APIRoute = async () => {
   const items = documents.map((doc) => ({
     title: doc.data.title,
     description: doc.data.description,
-    category: doc.data.category,
+    categories: doc.data.categories,
     url: `/documents/${doc.id}`,
   }));
 

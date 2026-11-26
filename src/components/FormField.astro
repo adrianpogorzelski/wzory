@@ -10,16 +10,63 @@ interface Props {
 const { field } = Astro.props;
 ---
 
-<div class="flex flex-col gap-3">
-  <label class="form-control">
-    <span class="label-text whitespace-nowrap">{field.label}</span>
-    <input
-      type={field.type === 'date' ? 'date' : 'text'}
-      name={field.id}
-      placeholder={field.placeholder}
-      class="input input-bordered w-full"
-    />
-  </label>
+<div class:list={['flex flex-col gap-3', field.showWhen && 'hidden']} data-show-when={field.showWhen}>
+  {field.type === 'choice' && (
+    <div role="radiogroup" aria-label={field.label} class="flex flex-col gap-1">
+      <span class="label-text text-xs text-base-content/70">{field.label}</span>
+      <div class:list={['join', (field.options?.length ?? 0) > 2 && 'join-vertical']}>
+        {field.options?.map((option, i) => (
+          <input
+            type="radio"
+            name={field.id}
+            value={option.value}
+            aria-label={option.label}
+            checked={i === 0}
+            class="join-item btn btn-sm"
+          />
+        ))}
+      </div>
+    </div>
+  )}
+
+  {field.type === 'list' && (
+    <div data-list-field data-max="8" class="flex flex-col gap-2">
+      <span class="label-text">{field.label}</span>
+      <div data-list-rows class="flex flex-col gap-2">
+        <div data-list-row class="flex items-center gap-2">
+          <input
+            type="text"
+            name={field.id}
+            data-list-item
+            placeholder={field.placeholder}
+            aria-label={field.label}
+            class="input input-bordered w-full"
+          />
+          <button type="button" data-list-remove aria-label="Usuń pozycję" class="btn btn-ghost btn-sm btn-circle hidden">✕</button>
+        </div>
+      </div>
+      <button type="button" data-list-add class="btn btn-ghost btn-sm self-start gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Dodaj kolejny
+      </button>
+    </div>
+  )}
+
+  {(field.type === 'text' || field.type === 'date' || field.type === 'person') && (
+    <label class="form-control">
+      <span class="label-text whitespace-nowrap">{field.label}</span>
+      <input
+        type={field.type === 'date' ? 'date' : 'text'}
+        name={field.id}
+        placeholder={field.placeholder}
+        inputmode={field.inputmode}
+        maxlength={field.maxlength}
+        class="input input-bordered w-full"
+      />
+    </label>
+  )}
 
   {field.type === 'person' && (
     <label class="form-control">
@@ -31,4 +78,6 @@ const { field } = Astro.props;
       </select>
     </label>
   )}
-</div>
+
+  {field.hint && <p class="max-w-xs text-xs text-base-content/60">{field.hint}</p>}
+</div>  

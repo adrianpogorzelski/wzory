@@ -1,7 +1,7 @@
 export interface SearchItem {
   title: string;
   description: string;
-  category: string;
+  categories: string;
   url: string;
 }
 
@@ -19,7 +19,7 @@ export function search(items: SearchItem[], query: string, limit = 8): SearchIte
   return items
     .map((item) => {
       const title = normalize(item.title);
-      const rest = normalize(`${item.description} ${item.category}`);
+      const rest = normalize(`${item.description} ${item.categories}`);
       let score = 0;
       for (const t of tokens) {
         if (title.includes(t)) score += 3;        // trafienie w tytule waży więcej

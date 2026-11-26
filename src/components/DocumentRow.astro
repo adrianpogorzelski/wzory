@@ -1,20 +1,27 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { docCategories } from '../utils/categories';
 
 interface Props {
   doc: CollectionEntry<'documents'>;
+  exclude?: string; // slug kategorii, której badge pomijamy (np. bieżącej)
 }
 
-const { doc } = Astro.props;
+const { doc, exclude } = Astro.props;
 const { title, description } = doc.data;
+const badges = docCategories(doc).filter((c) => c.slug !== exclude);
 ---
 
 <li class="list-row relative hover:bg-base-200 transition-colors">
   <div class="list-col-grow">
-    <a
-    href={`/documents/${doc.id}`}
-    class="font-semibold after:absolute after:inset-0"
-    >{title}</a>    
+    <a href={`/documents/${doc.id}`} class="font-semibold after:absolute after:inset-0">{title}</a>
     <p class="text-sm text-base-content/70">{description}</p>
+    {badges.length > 0 && (
+      <div class="mt-2 flex flex-wrap gap-1">
+        {badges.map((c) => (
+          <a href={`/categories/${c.slug}`} class="badge badge-outline badge-sm relative z-10">{c.name}</a>
+        ))}
+      </div>
+    )}
   </div>
 </li>

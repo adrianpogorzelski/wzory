@@ -1,9 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import { getCollection, render } from 'astro:content';
 import { slugify } from '../../utils/categories';
 import FormField from '../../components/FormField.astro';
+import PageHeader from '../../components/PageHeader.astro';
 
 export async function getStaticPaths() {
   const documents = await getCollection('documents');
@@ -12,20 +12,21 @@ export async function getStaticPaths() {
 
 const { doc } = Astro.props;
 const { Content } = await render(doc);
-const { title, category, fields, groups = [] } = doc.data;
+const { title, categories, fields, groups = [] } = doc.data;
+const category = categories[0]; // pierwsza kategoria jest główna (okruszki)
 
 const ungrouped = fields.filter((f) => !f.group);
 const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group === g.id) }));
 ---
 
 <Layout title={title}>
-  <main class="w-full py-8 px-4 md:px-8">
-    <Breadcrumbs
-      items={[
-        { label: category, href: `/categories/${slugify(category)}` },
-        { label: title },
-      ]}
-    />
+  <PageHeader
+    title={title}
+    crumbs={[
+      { label: category, href: `/categories/${slugify(category)}` },
+      { label: title },
+    ]}
+  />
 
     <div class="flex flex-col xl:flex-row gap-8 items-start">
 
@@ -59,9 +60,8 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
           </div>
         </div>
       </div>
-
     </div>
-  </main>
+
     <dialog id="missing-dialog" class="modal print:hidden">
     <div class="modal-box">
       <h3 class="text-lg font-bold">Nie wszystkie pola są wypełnione</h3>
@@ -80,111 +80,214 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
 </Layout>
 
 <script>
-import { declineName, guessGender, type Case, type Gender } from '../../utils/inflect';
+  import { declineName, guessGender, type Case, type Gender } from '../../utils/inflect';
 
-const form = document.getElementById('document-form') as HTMLFormElement;
-const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | null;
+  const form = document.getElementById('document-form') as HTMLFormElement;
+  const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | null;
 
-// płeć wybrana ręcznie albo odgadnięta z imienia; null, gdy jeszcze nic nie wiadomo
-function genderOf(id: string): Gender | null {
-  const chosen = field(`${id}__gender`)?.value as Gender | '' | undefined;
-  if (chosen) return chosen;
-  const name = field(id)?.value.trim();
-  return name ? guessGender(name) : null;
-}
-
-// zapamiętaj tekst z md ("[Miejscowość]", "[płeć]") jako wartość domyślną
-document.querySelectorAll<HTMLElement>('[data-field], [data-honorific]').forEach((el) => {
-  el.dataset.fallback = el.textContent ?? '';
-});
-
-function update() {
-  document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
-    const id = el.dataset.field!;
-    const input = field(id);
-    if (!input) return;
-
-    let value = input.type === 'date' && input.value
-      ? new Date(input.value + 'T00:00:00').toLocaleDateString('pl-PL')
-      : input.value.trim();
-
-    const c = el.dataset.case as Case | undefined;
-    if (value && c) value = declineName(value, genderOf(id) ?? guessGender(value), c);
-
-    el.textContent = value || el.dataset.fallback || '';
-  });
-
-  // "panią/pana" według płci osoby
-  document.querySelectorAll<HTMLElement>('[data-honorific]').forEach((el) => {
-    const gender = genderOf(el.dataset.honorific!);
-    el.textContent = gender ? (gender === 'f' ? 'panią' : 'pana') : el.dataset.fallback || '';
-  });
-}
-
-form.addEventListener('input', update);
-
-  const dialog = document.getElementById('missing-dialog') as HTMLDialogElement;
-const missingList = document.getElementById('missing-list') as HTMLUListElement;
-
-// puste pola tekstowe i daty, z czytelną nazwą (grupa: etykieta)
-function missingFields() {
-  return [...form.querySelectorAll<HTMLInputElement>('input')]
-    .filter((input) => !input.value.trim())
-    .map((input) => {
-      const group = input.closest('fieldset')?.querySelector('legend')?.textContent?.trim();
-      const name = input.closest('label')?.querySelector('.label-text')?.textContent?.trim() ?? input.name;
-      return { input, label: group ? `${group}: ${name}` : name };
-    });
-}
-
-document.getElementById('print-btn')?.addEventListener('click', () => {
-  const missing = missingFields();
-  if (!missing.length) {
-    window.print();
-    return;
+  // płeć wybrana ręcznie albo odgadnięta z imienia; null, gdy jeszcze nic nie wiadomo
+  function genderOf(id: string): Gender | null {
+    const chosen = field(`${id}__gender`)?.value as Gender | '' | undefined;
+    if (chosen) return chosen;
+    const name = field(id)?.value.trim();
+    return name ? guessGender(name) : null;
   }
-  missingList.replaceChildren(
-    ...missing.map((m) => {
-      const li = document.createElement('li');
-      li.textContent = m.label;
-      return li;
-    })
-  );
-  dialog.showModal();
-});
 
-document.getElementById('missing-fill')?.addEventListener('click', () => {
-  dialog.close();
-  missingFields()[0]?.input.focus();
-});
+  // zapamiętaj tekst z md jako wartość domyślną
+  document.querySelectorAll<HTMLElement>('[data-field], [data-honorific], [data-gender]').forEach((el) => {
+    el.dataset.fallback = el.textContent ?? '';
+  });
+  document.querySelectorAll<HTMLElement>('[data-list]').forEach((ul) => {
+    ul.dataset.fallback = ul.querySelector('li')?.textContent ?? '';
+  });
 
-document.getElementById('missing-print')?.addEventListener('click', () => {
-  dialog.close();
-  window.print();
-});
+  // pola i fragmenty widoczne tylko przy określonym wyborze: data-show-when="pole=wartość"
+  function applyConditions() {
+    document.querySelectorAll<HTMLElement>('[data-show-when]').forEach((el) => {
+      const [name, values] = el.dataset.showWhen!.split('=');
+      const show = values.split(',').includes(field(name)?.value ?? '');
+      el.classList.toggle('hidden', !show);
+      el.querySelectorAll<HTMLInputElement>('input, select').forEach((input) => {
+        input.disabled = !show;
+      });
+    });
+  }
 
-// Przed wydrukiem: puste pola zamieniamy na linię do wpisania ręcznie
-window.addEventListener('beforeprint', () => {
-  document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
-    const input = field(el.dataset.field!);
-    if (input && !input.value.trim()) {
-      el.textContent = '\u00A0';
-      el.classList.add('print-blank');
+  // podgląd na żywo
+  function update() {
+    applyConditions();
+
+    document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
+      const id = el.dataset.field!;
+      const input = field(id);
+      if (!input) return;
+
+      let value = input.type === 'date' && input.value
+        ? new Date(input.value + 'T00:00:00').toLocaleDateString('pl-PL')
+        : input.value.trim();
+
+      const c = el.dataset.case as Case | undefined;
+      if (value && c) value = declineName(value, genderOf(id) ?? guessGender(value), c);
+
+      el.textContent = value || el.dataset.fallback || '';
+    });
+
+    // starszy zapis: panią/pana
+    document.querySelectorAll<HTMLElement>('[data-honorific]').forEach((el) => {
+      const gender = genderOf(el.dataset.honorific!);
+      el.textContent = gender ? (gender === 'f' ? 'panią' : 'pana') : el.dataset.fallback || '';
+    });
+
+    // tekst zależny od płci: data-gender + data-m / data-f
+    document.querySelectorAll<HTMLElement>('[data-gender]').forEach((el) => {
+      const gender = genderOf(el.dataset.gender!);
+      const text = gender === 'f' ? el.dataset.f : gender === 'm' ? el.dataset.m : undefined;
+      el.textContent = text ?? el.dataset.fallback ?? '';
+    });
+
+    // tekst zależny od przełącznika: data-choice + atrybut o nazwie wybranej wartości
+    document.querySelectorAll<HTMLElement>('[data-choice]').forEach((el) => {
+      const value = field(el.dataset.choice!)?.value;
+      const text = value ? el.dataset[value] : undefined;
+      if (text) el.textContent = text;
+    });
+
+    // listy: jedna pozycja na wpisaną wartość
+    document.querySelectorAll<HTMLElement>('[data-list]').forEach((ul) => {
+      const values = [...form.querySelectorAll<HTMLInputElement>(`input[name="${ul.dataset.list}"]`)]
+        .map((input) => input.value.trim())
+        .filter(Boolean);
+      const items = values.length ? values : [ul.dataset.fallback ?? ''];
+      ul.replaceChildren(
+        ...items.map((text) => {
+          const li = document.createElement('li');
+          li.textContent = text;
+          if (!values.length) li.dataset.empty = 'true';
+          return li;
+        })
+      );
+    });
+  }
+
+  form.addEventListener('input', update);
+
+  // ---- powtarzalne pola (lista) ----
+  function syncList(list: HTMLElement) {
+    const count = list.querySelectorAll('[data-list-row]').length;
+    list.querySelector<HTMLButtonElement>('[data-list-add]')!.disabled = count >= Number(list.dataset.max ?? 8);
+  }
+
+  form.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+
+    const add = target.closest<HTMLElement>('[data-list-add]');
+    if (add) {
+      const list = add.closest<HTMLElement>('[data-list-field]')!;
+      const rows = list.querySelector<HTMLElement>('[data-list-rows]')!;
+      if (rows.children.length >= Number(list.dataset.max ?? 8)) return;
+
+      const row = rows.firstElementChild!.cloneNode(true) as HTMLElement;
+      const input = row.querySelector('input')!;
+      input.value = '';
+      row.querySelector('[data-list-remove]')?.classList.remove('hidden');
+      rows.append(row);
+      input.focus();
+      syncList(list);
+      return;
+    }
+
+    const remove = target.closest('[data-list-remove]');
+    if (remove) {
+      const list = remove.closest<HTMLElement>('[data-list-field]')!;
+      remove.closest('[data-list-row]')?.remove();
+      syncList(list);
+      update();
     }
   });
-  // nieustalona płeć: zostaje "panią/pana" do ręcznego skreślenia
-  document.querySelectorAll<HTMLElement>('[data-honorific]').forEach((el) => {
-    if (!genderOf(el.dataset.honorific!)) el.textContent = 'panią/pana';
+
+  // ---- druk z kontrolą braków ----
+  const dialog = document.getElementById('missing-dialog') as HTMLDialogElement;
+  const missingList = document.getElementById('missing-list') as HTMLUListElement;
+
+  function missingFields() {
+    return [...form.querySelectorAll<HTMLInputElement>('input:not([type="radio"]):not(:disabled)')]
+      .filter((input) => {
+        if (input.value.trim()) return false;
+        if ('listItem' in input.dataset) {
+          // lista: brakuje tylko wtedy, gdy puste są wszystkie jej pozycje
+          const same = [...form.querySelectorAll<HTMLInputElement>(`input[name="${input.name}"]`)];
+          return input === same[0] && same.every((i) => !i.value.trim());
+        }
+        return true;
+      })
+      .map((input) => {
+        const group = input.closest('fieldset')?.querySelector('legend')?.textContent?.trim();
+        const name =
+          input.closest('label, [data-list-field]')?.querySelector('.label-text')?.textContent?.trim() ?? input.name;
+        return { input, label: group ? `${group}: ${name}` : name };
+      });
+  }
+
+  document.getElementById('print-btn')?.addEventListener('click', () => {
+    const missing = missingFields();
+    if (!missing.length) {
+      window.print();
+      return;
+    }
+    missingList.replaceChildren(
+      ...missing.map((m) => {
+        const li = document.createElement('li');
+        li.textContent = m.label;
+        return li;
+      })
+    );
+    dialog.showModal();
   });
-});
 
-// Po wydruku: przywróć podgląd
-window.addEventListener('afterprint', () => {
-  document.querySelectorAll('.print-blank').forEach((el) => el.classList.remove('print-blank'));
-  update();
-});
+  document.getElementById('missing-fill')?.addEventListener('click', () => {
+    dialog.close();
+    missingFields()[0]?.input.focus();
+  });
 
-  // dopasowanie kartki A4 do szerokości kolumny
+  document.getElementById('missing-print')?.addEventListener('click', () => {
+    dialog.close();
+    window.print();
+  });
+
+  // przed wydrukiem puste miejsca zamieniamy na linie do wpisania ręcznie
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
+      const input = field(el.dataset.field!);
+      if (input && !input.value.trim()) {
+        el.textContent = '\u00A0';
+        el.classList.add('print-blank');
+      }
+    });
+
+    document.querySelectorAll<HTMLElement>('[data-honorific]').forEach((el) => {
+      if (!genderOf(el.dataset.honorific!)) el.textContent = 'panią/pana';
+    });
+
+    // nieustalona płeć: obie formy do ręcznego skreślenia
+    document.querySelectorAll<HTMLElement>('[data-gender]').forEach((el) => {
+      if (!genderOf(el.dataset.gender!)) el.textContent = el.dataset.print ?? `${el.dataset.f}/${el.dataset.m}`;
+    });
+
+    // pusta lista: jedna linia do wpisania
+    document.querySelectorAll<HTMLElement>('li[data-empty]').forEach((li) => {
+      const blank = document.createElement('span');
+      blank.className = 'print-blank';
+      blank.textContent = '\u00A0';
+      li.replaceChildren(blank);
+    });
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.querySelectorAll('.print-blank').forEach((el) => el.classList.remove('print-blank'));
+    update();
+  });
+
+  // ---- kartka A4 dopasowana do szerokości kolumny ----
   const frame = document.getElementById('page-frame') as HTMLElement;
   const sizer = document.getElementById('page-sizer') as HTMLElement;
   const page = document.getElementById('document-preview') as HTMLElement;
@@ -197,7 +300,47 @@ window.addEventListener('afterprint', () => {
 
   const refit = () => requestAnimationFrame(fit);
   new ResizeObserver(refit).observe(frame);
-  new ResizeObserver(refit).observe(page); // gdy dłuższa treść wydłuży kartkę
+  new ResizeObserver(refit).observe(page);
   document.fonts.ready.then(fit);
   fit();
+
+  // ---- podgląd wysuwany z prawej (telefon/tablet) ----
+  const pane = document.getElementById('preview-pane') as HTMLElement;
+  const backdrop = document.getElementById('preview-backdrop') as HTMLElement;
+  const desktop = window.matchMedia('(min-width: 1024px)');
+
+  function setPreview(open: boolean) {
+    pane.dataset.open = String(open);
+    backdrop.dataset.open = String(open);
+    document.body.classList.toggle('overflow-hidden', open);
+  }
+
+  document.getElementById('open-preview')?.addEventListener('click', () => setPreview(true));
+  document.getElementById('close-preview')?.addEventListener('click', () => setPreview(false));
+  backdrop.addEventListener('click', () => setPreview(false));
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && setPreview(false));
+  desktop.addEventListener('change', () => setPreview(false));
+
+  // gesty: przesunięcie w lewo otwiera, w prawo zamyka
+  let startX = 0;
+  let startY = 0;
+
+  document.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (desktop.matches || dialog.open) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return;
+
+    const open = pane.dataset.open === 'true';
+    if (open && dx > 0) setPreview(false);
+    if (!open && dx < 0) setPreview(true);
+  }, { passive: true });
+
+  // stan początkowy podglądu (np. ukryte pola warunkowe)
+  update();
 </script>

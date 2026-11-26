@@ -20,9 +20,9 @@ const { title } = Astro.props;
   <body class="min-h-dvh flex flex-col bg-base-200 print:bg-white">
     <Navbar />
 
-    <div class:list={['flex-1 py-4 sm:py-8 print:max-w-none print:p-0', CONTAINER]}>
+    <main class:list={['flex-1 py-4 sm:py-8 print:max-w-none print:p-0', CONTAINER]}>
       <slot />
-    </div>
+    </main>
 
     <footer class="bg-base-100 border-t border-base-300 py-3 text-xs text-base-content/70 print:hidden">
       <div class:list={['text-center', CONTAINER]}>

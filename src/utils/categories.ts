@@ -16,14 +16,24 @@ export interface Category {
   count: number;
 }
 
+// kategorie jednego dokumentu (bez duplikatów, w kolejności z frontmattera)
+export function docCategories(doc: CollectionEntry<'documents'>) {
+  const result: { name: string; slug: string }[] = [];
+  for (const name of doc.data.categories) {
+    const slug = slugify(name);
+    if (!result.some((c) => c.slug === slug)) result.push({ name, slug });
+  }
+  return result;
+}
+
 export function getCategories(docs: CollectionEntry<'documents'>[]): Category[] {
   const map = new Map<string, Category>();
   for (const doc of docs) {
-    const name = doc.data.category;
-    const slug = slugify(name);
-    const entry = map.get(slug);
-    if (entry) entry.count++;
-    else map.set(slug, { name, slug, count: 1 });
+    for (const { name, slug } of docCategories(doc)) {
+      const entry = map.get(slug);
+      if (entry) entry.count++;
+      else map.set(slug, { name, slug, count: 1 });
+    }
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'pl'));
 }
