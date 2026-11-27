@@ -12,7 +12,7 @@ export async function getStaticPaths() {
 
 const { doc } = Astro.props;
 const { Content } = await render(doc);
-const { title, categories, fields, groups = [] } = doc.data;
+const { title, categories, fields, groups = [], calculator } = doc.data;
 const category = categories[0]; // pierwsza kategoria jest główna (okruszki)
 
 const ungrouped = fields.filter((f) => !f.group);
@@ -30,9 +30,12 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
 
     <div class="flex flex-col xl:flex-row gap-8 items-start">
 
-      <form id="document-form" class="card bg-base-100 shadow-xl p-6 border border-base-200 w-full xl:w-max xl:min-w-64 xl:sticky xl:top-8 shrink-0 space-y-4 print:hidden">
-        <h2 class="text-2xl font-bold">Dane dokumentu</h2>
-
+      <form
+        id="document-form"
+        data-calculator={calculator}
+        class="card bg-base-100 shadow-xl p-6 border border-base-200 w-full xl:w-max xl:min-w-64 xl:sticky xl:top-8 shrink-0 space-y-4 print:hidden"
+      >        
+      <h2 class="text-2xl font-bold">Dane dokumentu</h2>
         {ungrouped.map((f) => <FormField field={f} />)}
 
         {grouped.map((g) => (
@@ -81,9 +84,39 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
 
 <script>
   import { declineName, guessGender, type Case, type Gender } from '../../utils/inflect';
+  import { calculators } from '../../utils/calculators';
 
   const form = document.getElementById('document-form') as HTMLFormElement;
   const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | null;
+
+  // wartość pola: radio → wybrana opcja, checkbox → 'yes' / 'no', reszta → tekst
+  function valueOf(name: string): string {
+    const el = form.elements.namedItem(name);
+    if (!el) return '';
+    if (el instanceof RadioNodeList) return el.value;
+    const input = el as HTMLInputElement;
+    return input.type === 'checkbox' ? (input.checked ? 'yes' : 'no') : input.value;
+  }
+
+  function setValue(name: string, value: string) {
+    const el = form.elements.namedItem(name);
+    if (!el) return;
+    if (el instanceof RadioNodeList) {
+      el.forEach((node) => {
+        const radio = node as HTMLInputElement;
+        if (radio.type === 'radio') radio.checked = radio.value === value;
+      });
+    } else {
+      (el as HTMLInputElement).value = value;
+    }
+  }
+
+  // domyślne wartości: data-default="today" (lokalna data)
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  form.querySelectorAll<HTMLInputElement>('input[data-default="today"]').forEach((input) => {
+    if (!input.value) input.value = today;
+  });
 
   // płeć wybrana ręcznie albo odgadnięta z imienia; null, gdy jeszcze nic nie wiadomo
   function genderOf(id: string): Gender | null {
@@ -101,11 +134,26 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
     ul.dataset.fallback = ul.querySelector('li')?.textContent ?? '';
   });
 
-  // pola i fragmenty widoczne tylko przy określonym wyborze: data-show-when="pole=wartość"
+  // kalkulator dokumentu (frontmatter: calculator)
+  const calculator = form.dataset.calculator ? calculators[form.dataset.calculator] : undefined;
+
+  function recalc() {
+    if (!calculator) return;
+    const result = calculator(valueOf);
+    for (const [name, value] of Object.entries(result.set ?? {})) setValue(name, value);
+    for (const [name, text] of Object.entries(result.output ?? {})) {
+      const el = form.querySelector<HTMLElement>(`[data-output="${name}"]`);
+      if (el) el.textContent = text;
+    }
+  }
+
+  // pola i fragmenty widoczne tylko przy określonym wyborze: "pole=a,b" lub "pole=a;inne=b" (wszystkie warunki)
   function applyConditions() {
     document.querySelectorAll<HTMLElement>('[data-show-when]').forEach((el) => {
-      const [name, values] = el.dataset.showWhen!.split('=');
-      const show = values.split(',').includes(field(name)?.value ?? '');
+      const show = el.dataset.showWhen!.split(';').every((condition) => {
+        const [name, values] = condition.split('=');
+        return values.split(',').includes(valueOf(name));
+      });
       el.classList.toggle('hidden', !show);
       el.querySelectorAll<HTMLInputElement>('input, select').forEach((input) => {
         input.disabled = !show;
@@ -115,6 +163,7 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
 
   // podgląd na żywo
   function update() {
+    recalc();
     applyConditions();
 
     document.querySelectorAll<HTMLElement>('[data-field]').forEach((el) => {
@@ -147,7 +196,7 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
 
     // tekst zależny od przełącznika: data-choice + atrybut o nazwie wybranej wartości
     document.querySelectorAll<HTMLElement>('[data-choice]').forEach((el) => {
-      const value = field(el.dataset.choice!)?.value;
+      const value = valueOf(el.dataset.choice!);
       const text = value ? el.dataset[value] : undefined;
       if (text) el.textContent = text;
     });
@@ -210,7 +259,8 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
   const missingList = document.getElementById('missing-list') as HTMLUListElement;
 
   function missingFields() {
-    return [...form.querySelectorAll<HTMLInputElement>('input:not([type="radio"]):not(:disabled)')]
+    const selector = 'input:not([type="radio"]):not([type="checkbox"]):not([data-optional]):not(:disabled)';
+    return [...form.querySelectorAll<HTMLInputElement>(selector)]
       .filter((input) => {
         if (input.value.trim()) return false;
         if ('listItem' in input.dataset) {
@@ -341,6 +391,6 @@ const grouped = groups.map((g) => ({ ...g, fields: fields.filter((f) => f.group 
     if (!open && dx < 0) setPreview(true);
   }, { passive: true });
 
-  // stan początkowy podglądu (np. ukryte pola warunkowe)
+  // stan początkowy podglądu (dzisiejsza data, wyliczenia, ukryte pola warunkowe)
   update();
 </script>

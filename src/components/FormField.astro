@@ -29,6 +29,20 @@ const { field } = Astro.props;
     </div>
   )}
 
+  {field.type === 'checkbox' && (
+    <label class="flex cursor-pointer items-start gap-3">
+      <input type="checkbox" name={field.id} checked={field.checked} class="checkbox checkbox-sm mt-0.5" />
+      <span class="label-text max-w-xs">{field.label}</span>
+    </label>
+  )}
+
+  {field.type === 'note' && (
+    <div class="max-w-xs rounded-box bg-base-200 p-3 text-sm" aria-live="polite">
+      <span class="label-text mb-1 block text-xs text-base-content/70">{field.label}</span>
+      <p data-output={field.id}></p>
+    </div>
+  )}
+
   {field.type === 'list' && (
     <div data-list-field data-max="8" class="flex flex-col gap-2">
       <span class="label-text">{field.label}</span>
@@ -63,6 +77,8 @@ const { field } = Astro.props;
         placeholder={field.placeholder}
         inputmode={field.inputmode}
         maxlength={field.maxlength}
+        data-default={field.default}
+        data-optional={field.optional ? 'true' : undefined}
         class="input input-bordered w-full"
       />
     </label>
@@ -80,4 +96,4 @@ const { field } = Astro.props;
   )}
 
   {field.hint && <p class="max-w-xs text-xs text-base-content/60">{field.hint}</p>}
-</div>  
+</div>

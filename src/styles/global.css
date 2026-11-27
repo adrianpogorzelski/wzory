@@ -1,4 +1,3 @@
-
 @import "tailwindcss";
 
 @plugin "daisyui" {
@@ -14,6 +13,7 @@
   default: true;
   color-scheme: light;
 
+  /* Marka */
   --color-primary: #243B53;
   --color-primary-content: #FFFFFF;
 
@@ -23,14 +23,17 @@
   --color-accent: #D6A85F;
   --color-accent-content: #243B53;
 
+  /* Neutralne */
   --color-neutral: #354052;
   --color-neutral-content: #FFFFFF;
 
+  /* Powierzchnie */
   --color-base-100: #FFFFFF;
-  --color-base-200: #F0F3F5;
+  --color-base-200: #F8F7F3;
   --color-base-300: #D9E0E5;
   --color-base-content: #354052;
 
+  /* Statusy */
   --color-info: #3D718A;
   --color-info-content: #FFFFFF;
 
@@ -43,6 +46,7 @@
   --color-error: #B54747;
   --color-error-content: #FFFFFF;
 
+  /* Geometria */
   --radius-selector: 0.5rem;
   --radius-field: 0.625rem;
   --radius-box: 0.875rem;
@@ -53,26 +57,32 @@
 }
 
 /* =========================================
-   ZMIENNE GLOBALNE
+   ZMIENNE WŁASNE
    ========================================= */
 
 :root {
-  --page-background: #F8F7F3;
-  --surface-background: #FFFFFF;
   --surface-blue: #DCE8F0;
 
-  --text-primary: #354052;
-  --text-muted: #5F6B78;
-
-  --border-subtle: #D9E0E5;
   --border-strong: #B7C5D0;
 
-  --shadow-sm: 0 2px 8px rgba(36, 59, 83, 0.06);
-  --shadow-md: 0 5px 18px rgba(36, 59, 83, 0.09);
-  --shadow-hover: 0 8px 24px rgba(36, 59, 83, 0.12);
+  --shadow-sm: 0 2px 8px color-mix(
+    in srgb,
+    var(--color-primary) 6%,
+    transparent
+  );
 
-  --content-max-width: 1200px;
-  --section-spacing: 2.5rem;
+  --shadow-md: 0 5px 18px color-mix(
+    in srgb,
+    var(--color-primary) 9%,
+    transparent
+  );
+
+  --shadow-hover: 0 8px 24px color-mix(
+    in srgb,
+    var(--color-primary) 12%,
+    transparent
+  );
+
   --transition-fast: 160ms ease;
 }
 
@@ -89,17 +99,23 @@ body {
   min-height: 100vh;
   margin: 0;
 
-  color: var(--text-primary);
-  background-color: var(--page-background);
+  color: var(--color-base-content);
+  background-color: var(--color-base-200);
   background-image: url("/bg.png");
   background-position: center top;
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: fixed;
 
-  font-family: system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
   line-height: 1.65;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -134,7 +150,7 @@ a {
 }
 
 ::selection {
-  color: #FFFFFF;
+  color: var(--color-primary-content);
   background-color: var(--color-secondary);
 }
 
@@ -151,7 +167,13 @@ a {
 .breadcrumbs {
   margin: 0 0 12px;
   padding: 0;
-  color: var(--text-muted);
+
+  color: color-mix(
+    in srgb,
+    var(--color-base-content) 70%,
+    transparent
+  );
+
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -168,7 +190,9 @@ a {
 
 .page-title {
   margin: 0 0 20px;
+
   color: var(--color-primary);
+
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.3;
@@ -188,14 +212,15 @@ a {
 .document-card,
 .card-custom,
 .surface-custom {
-  background-color: var(--surface-background);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
   border-radius: var(--radius-box);
 }
 
 .document-card,
 .card-custom {
   box-shadow: var(--shadow-sm);
+
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
@@ -210,10 +235,6 @@ a {
 .card-custom:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-hover);
-}
-
-.document-card:hover,
-.card-custom:hover {
   transform: translateY(-2px);
 }
 
@@ -227,6 +248,7 @@ a {
 .document-card h2,
 .document-card h3 {
   margin: 0 0 4px;
+
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.45;
@@ -235,7 +257,13 @@ a {
 .document-card p,
 .card-custom p {
   margin: 0;
-  color: var(--text-muted);
+
+  color: color-mix(
+    in srgb,
+    var(--color-base-content) 70%,
+    transparent
+  );
+
   font-size: 0.875rem;
   line-height: 1.55;
 }
@@ -246,14 +274,20 @@ a {
 
 .info-box {
   padding: 1.25rem;
-  border: 1px solid var(--border-subtle);
+
+  border: 1px solid var(--color-base-300);
   border-radius: var(--radius-box);
+
   background-color: var(--surface-blue);
   color: var(--color-primary);
 }
 
 .text-muted-custom {
-  color: var(--text-muted);
+  color: color-mix(
+    in srgb,
+    var(--color-base-content) 70%,
+    transparent
+  );
 }
 
 /* =========================================
@@ -262,6 +296,7 @@ a {
 
 .btn-primary {
   box-shadow: var(--shadow-sm);
+
   transition:
     box-shadow var(--transition-fast),
     transform var(--transition-fast);
@@ -279,7 +314,12 @@ a {
 .select:focus,
 .textarea:focus {
   border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px rgba(61, 113, 138, 0.16);
+
+  box-shadow: 0 0 0 3px color-mix(
+    in srgb,
+    var(--color-secondary) 16%,
+    transparent
+  );
 }
 
 .menu a {
@@ -332,10 +372,6 @@ a {
    ========================================= */
 
 @media (max-width: 768px) {
-  :root {
-    --section-spacing: 1.75rem;
-  }
-
   body {
     background-attachment: scroll;
   }
@@ -380,6 +416,7 @@ a {
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+
     color: #000000 !important;
     background: #FFFFFF !important;
     background-image: none !important;
@@ -390,6 +427,7 @@ a {
       color-mix(in srgb, currentColor 14%, transparent) 1px,
       transparent 1px
     ) !important;
+
     background-size: 22px 22px !important;
   }
 
@@ -411,9 +449,11 @@ a {
     width: 100% !important;
     min-height: 0 !important;
     transform: none !important;
+
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+
     background: #FFFFFF !important;
   }
 
@@ -426,16 +466,20 @@ a {
   }
 
   #preview-backdrop,
-  #open-preview { display: none !important; }
+  #open-preview {
+    display: none !important;
+  }
 
   #preview-pane {
     position: static !important;
     transform: none !important;
     translate: none !important;
+
     width: 100% !important;
     max-width: none !important;
     padding: 0 !important;
     overflow: visible !important;
+
     background: transparent !important;
     box-shadow: none !important;
   }

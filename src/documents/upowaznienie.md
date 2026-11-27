@@ -14,8 +14,7 @@ groups:
     description: "Jakie dokumenty ma odebrać osoba upoważniona, gdzie oraz na jak długo upoważnienie obowiązuje."
 fields:
   - { id: city, label: "Miejscowość", placeholder: "np. Warszawa" }
-  - { id: date, label: "Data", type: date }
-
+  - { id: date, label: "Data", type: date, default: today }
   - { id: authorizing-person, label: "Imię i nazwisko", group: authorizing, placeholder: "np. Jan Kowalski" }
   - { id: authorizing-address, label: "Adres zamieszkania", group: authorizing, placeholder: "np. ul. Długa 5/12, 00-001 Warszawa" }
   - { id: authorizing-pesel, label: "PESEL", group: authorizing, placeholder: "11 cyfr", inputmode: numeric, maxlength: 11 }
